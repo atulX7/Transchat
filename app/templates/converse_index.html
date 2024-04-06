@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Language Conversation App</title>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+
+                    mediaRecorder.addEventListener("dataavailable", event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener("stop", () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        uploadAudio(audioBlob);
+                        audioChunks = [];
+                    });
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+        }
+
+        function uploadAudio(audioBlob) {
+            const formData = new FormData();
+            formData.append("file", audioBlob, "recording.wav");
+            formData.append("lang1", document.getElementById('lang1').value);
+            formData.append("lang2", document.getElementById('lang2').value);
+            fetch('/conversation', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = data.filePath;
+                audioPlayer.style.display = 'block';
+                audioPlayer.load();
+                audioPlayer.play();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</head>
+<body>
+    <label for="lang1">Language 1:</label>
+    <select id="lang1">
+        <option value="english">English</option>
+        <option value="hindi">Hindi</option>
+        <!-- Add more languages as needed -->
+    </select>
+
+    <label for="lang2">Language 2:</label>
+    <select id="lang2">
+        <option value="english">English</option>
+        <option value="hindi">Hindi</option>
+        <!-- Add more languages as needed -->
+    </select>
+
+    <button onclick="startRecording()">Start Recording</button>
+    <button onclick="stopRecording()">Stop Recording</button>
+    <audio controls id="audioPlayer" style="display:none;"></audio>
+</body>
+</html>

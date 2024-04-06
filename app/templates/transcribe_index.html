@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Transcription and Conclusion</title>
+</head>
+<body>
+    <h2>Upload a Video for Transcription and Conclusion</h2>
+    <input type="file" id="videoFile" accept="audio/*,video/*">
+    <br><br>
+
+    <label for="languageSelect">Choose a Language:</label>
+    <select id="languageSelect">
+        <option value="English">English</option>
+        <option value="Hindi">Hindi</option>
+        <option value="fr">French</option>
+        <!-- Add other languages as needed -->
+    </select>
+    <br><br>
+
+    <button onclick="transcribeVideo()">Transcribe</button>
+    <br><br>
+
+    <textarea id="transcriptionText" rows="10" cols="50" placeholder="Transcription and conclusion will appear here..."></textarea>
+    <br><br>
+
+    <button onclick="concludeVideo()">Conclude</button>
+
+    <script>
+        function sendVideo(apiUrl, isConclude = false) {
+            const language = document.getElementById('languageSelect').value;
+            const formData = new FormData();
+
+            if (isConclude) {
+                const transcription = document.getElementById('transcriptionText').value;
+                formData.append('transcription', transcription);
+                formData.append('language', language);
+            } else {
+                const videoFile = document.getElementById('videoFile').files[0];
+                if (!videoFile) {
+                    alert('Please select a video file first.');
+                    return;
+                }
+                formData.append('video', videoFile);
+                formData.append('language', language);
+            }
+
+            fetch(apiUrl, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                let textArea = document.getElementById('transcriptionText');
+                if (isConclude) {
+                    // Append the conclusion to the transcription
+                    textArea.value += "\n\nConclusion:\n" + data.transcript;
+                } else {
+                    // Display the transcript
+                    textArea.value = "Transcription:\n" + data.transcript;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing your request.');
+            });
+        }
+
+        function transcribeVideo() {
+            sendVideo('/transcribe');
+        }
+
+        function concludeVideo() {
+            if (!document.getElementById('transcriptionText').value.trim()) {
+                alert('Please transcribe a video first.');
+                return;
+            }
+            sendVideo('/conclude', true);
+        }
+    </script>
+</body>
+</html>
